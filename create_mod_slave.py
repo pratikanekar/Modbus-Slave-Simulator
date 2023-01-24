@@ -3,16 +3,22 @@ from loguru import logger
 from math import ceil
 import csv
 from os import getcwd
+from time import sleep
 
 # following object is used to for serial communication
-# receiver = serial.Serial(
-#      port='/dev/ttyUSB0',
-#      baudrate=57600,
-#      parity=serial.PARITY_NONE,
-#      stopbits=serial.STOPBITS_ONE,
-#      bytesize=serial.EIGHTBITS,
-#      timeout=1
-#      )
+receiver = serial.Serial(
+     port='/dev/ttyUSB0',
+     baudrate=9600,
+     parity=serial.PARITY_NONE,
+     stopbits=serial.STOPBITS_ONE,
+     bytesize=serial.EIGHTBITS
+     )
+
+
+random_open = {"01": "coils", "02": "discrete_input", "03": "holding", "04": "input"}
+
+
+# here store all csv file data into this dict
 all_register_dict = {"holding": {}, "input": {}, "coils": {}}
 
 for file_name in all_register_dict:
@@ -21,7 +27,7 @@ for file_name in all_register_dict:
     for row in file_reader:
         all_register_dict.get(file_name).update({row[0]: row[1]})
     file_open.close()
-random_open = {"01": "coils", "02": "discrete_input", "03": "holding", "04": "input"}
+logger.info(f"Done with File Importing........")
 
 
 # following function is used to finding values of starting addresses
@@ -63,13 +69,11 @@ def find_count_register(mod_count, funtion_code):
 # following function is used to decoding receive data for calculation
 def decode_data_fun(received_data):
     try:
-        received_data = received_data.split("\\x")
-        slave_id = received_data[1]                        # here we find slave_id from received data
-        function_code = received_data[2]                   # here we find function_code from received data
-        st_add = received_data[3] + received_data[4]      # here we find starting_address from received data
-        mod_count = received_data[5] + received_data[6]
+        slave_id = received_data[0:2]                      # here we find slave_id from received data
+        function_code = received_data[2:4]                   # here we find function_code from received data
+        st_add = received_data[4:8]                         # here we find starting_address from received data
+        mod_count = received_data[8:12]
         count = find_count_register(mod_count, function_code)   # here we find byte_count from received data
-        # checksum = x.split("\\x")[7] + x.split("\\x")[8].replace("'", "")
         start_add = find_start_add_value(st_add, function_code, mod_count)  # here we call function for give addresses
         data = f"{slave_id}{function_code}{count}{start_add}"
         checksum = crc16(data).replace(" ", "0")                # here we find crc16(checksum) for sending data
@@ -98,16 +102,27 @@ def crc16(data, bits=8):
 
 
 if __name__ == '__main__':
-    try:
-        # Make a function to store a in dict
-        # while 1:
-        # received_data = receiver.readline()
-        received_data = str(b'\x01\x04\x00\x0e\x00\x04\xcc\x19')
-        logger.info(f"Received Data From Modbus : {received_data}")
-        send_data = decode_data_fun(received_data)
-        logger.info(f"Send Data To Modbus : {send_data}")
-    except Exception as e:
-        logger.error(f"error occurred in main as : {e}")
-    except KeyboardInterrupt:
-        logger.error(f"Found KeyBoard Interrupt,so EXIT Code")
-        # break
+    while 1:
+        try:
+            received_data = receiver.read(16)
+            if len(received_data) > 0:
+                try:
+                    received_data = received_data.hex()
+                except:
+                    logger.debug(f"Error on Data: {received_data}")
+                    continue
+
+                logger.info(f"Received Data From Modbus : {received_data.upper()}")
+                send_data = bytes.fromhex(decode_data_fun(received_data))
+                receiver.write(send_data)
+                logger.info(f"Send Data To Modbus : {send_data.hex().upper()}")
+            else:
+                logger.debug(f"No Data Found")
+        except Exception as e:
+            logger.error(f"error occurred in main as : {e}")
+        except KeyboardInterrupt:
+            logger.error(f"Found KeyBoard Interrupt,so EXIT Code")
+
+        finally:
+            receiver.flush()
+
