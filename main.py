@@ -30,7 +30,7 @@ random_open = {1: "c", 2: "discrete_input", 3: "h", 4: "i"}
 """
     Following Redis connection setup
 """
-redis_ip = "10.129.2.230"  # change ip according to redis is hosted ip
+redis_ip = "10.129.2.23"  # change ip according to redis is hosted ip
 redis_port = 6379
 redis_db = args.redisdb
 modbus_port = args.mport
@@ -110,7 +110,7 @@ def read_data(slave_id, function_code, address):
     return decoded_value
 
 
-@app.route(slave_ids=[1], function_codes=[6, 16], addresses=list(range(0, 1000)))
+@app.route(slave_ids=[1], function_codes=[1, 3, 4, 6, 16], addresses=list(range(0, 1000)))
 def write_data(slave_id, function_code, address, value):
     """
         In this Function we Write data in redis database
