@@ -14,7 +14,7 @@ from create_csv_add_data_redis.create_redis_db_and_push_data import add_data_int
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-ModbusPort", "--mport", help="Enter the Port that you want to Expose for Slave", type=int,
-                    default=1502)
+                    default=1505)
 parser.add_argument("-RedisDB", "--redisdb", help="Enter the Redis DB", type=int, default=0)
 parser.add_argument("-CreateRedisDB", "--newredisdb",
                     help="Set this to true if you want to create a new db with new data", type=bool, default=False)
@@ -73,6 +73,13 @@ def write_val_redis_database(function_code, start_address, value):
         In this function we write value redis database using function code and addresses
     """
     try:
+        if function_code == 6:
+            """ Here for write holding register its function code is 6 but we use redis db so we convert it into 3 """
+            function_code = 3
+        if function_code == 5:
+            """ Here for write coil register its function code is 5 but we use redis db so we convert it into 1 """
+            """ Coil register store value in 0 or 1 (binary) format only"""
+            function_code = 1
         start_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         start_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         if redis_db_conn.ping():
@@ -110,7 +117,7 @@ def read_data(slave_id, function_code, address):
     return decoded_value
 
 
-@app.route(slave_ids=[1], function_codes=[1, 3, 4, 6, 16], addresses=list(range(0, 1000)))
+@app.route(slave_ids=[1], function_codes=[1, 3, 4, 6, 16, 5], addresses=list(range(0, 1000)))
 def write_data(slave_id, function_code, address, value):
     """
         In this Function we Write data in redis database
@@ -134,7 +141,7 @@ def start_modbus_server():
 
 if __name__ == '__main__':
     logger.info(f"Connected to redis_ip - {redis_ip} , redis_port - {redis_port} , redis_db - {redis_db}")
-    logger.debug(f"For testing use following $pymodbus.console tcp --host localhost --port 1502")
+    logger.debug(f"For testing use following $pymodbus.console tcp --host localhost --port {modbus_port}")
     if args.newredisdb:
         check_create_redis_db()
 
