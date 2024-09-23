@@ -73,12 +73,18 @@ def write_val_redis_database(function_code, start_address, value):
         In this function we write value redis database using function code and addresses
     """
     try:
-        if function_code == 6:
-            """ Here for write holding register its function code is 6 but we use redis db so we convert it into 3 """
+        if function_code == 6 or function_code == 16:
+            """ 
+                Here for write holding register its function code is 6 or 16 but we use redis db so we convert it into 3 
+            """
             function_code = 3
-        if function_code == 5:
-            """ Here for write coil register its function code is 5 but we use redis db so we convert it into 1 """
-            """ Coil register store value in 0 or 1 (binary) format only"""
+        if function_code == 5 or function_code == 15:
+            """ 
+                Here for write coil register its function code is 5 or 15 but we use redis db so we convert it into 1 
+            """
+            """ 
+                Coil register store value in 0 or 1 (binary) format only
+            """
             function_code = 1
         start_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         start_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -117,7 +123,7 @@ def read_data(slave_id, function_code, address):
     return decoded_value
 
 
-@app.route(slave_ids=[1], function_codes=[1, 3, 4, 6, 16, 5], addresses=list(range(0, 1000)))
+@app.route(slave_ids=[1], function_codes=[1, 3, 4, 6, 16, 5, 15], addresses=list(range(0, 1000)))
 def write_data(slave_id, function_code, address, value):
     """
         In this Function we Write data in redis database
