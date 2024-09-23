@@ -1,0 +1,31 @@
+version: "3.8"
+
+services:
+  redis_db:
+    container_name: redis_db
+    image: redis:6.0
+    restart: always
+    ports:
+      - '6379:6379'
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - ./redis:/data
+    environment:
+      - TZ=Asia/Kolkata
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+
+  redis-insight:
+    container_name: redis_insight
+    image: redislabs/redisinsight:1.13.1
+    restart: always
+    ports:
+      - '8001:8001'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+    depends_on:
+      - redis_db
